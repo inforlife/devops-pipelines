@@ -11,15 +11,15 @@ jobs:
       - name: Dispatch event
         run: |
           # Set the required variables
-          target_repo=$(echo ${{ github.event.issue.title }} | cut -d "@" -f 1 | xargs | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-          target_release=$(echo ${{ github.event.issue.title }} | cut -d "@" -f 2)
-          event_type=${{ github.event.comment.body }}
+          target_repo=$(echo ${{ github.event.issue.title }} | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+          event_type=$(echo ${{ github.event.comment.body }} | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
+          read -a payload_param <<< $(echo ${{ github.event.comment.body }} | cut -d " " -f 2-)
 
           gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/${{ github.repository_owner }}/$target_repo/dispatches \
-            -f "event_type=$event_type" -F "client_payload[target_release]=$target_release"
+            -f "event_type=$event_type" -F "client_payload[${payload_param[0]}]=${payload_param[1]}"
         env:
           GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
