@@ -16,8 +16,8 @@ jobs:
       - name: Dispatch event
         run: |
           # Set the required variables
-          target_repo=$(echo "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-          event_type=$(echo "${{ github.event.comment.body }}" | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
+          target_repo=$(printf '%s\n' "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+          event_type=$(printf '%s\n' "${{ github.event.comment.body }}" | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
           
           # Validate target_repo format (only alphanumeric and hyphens)
           if [[ ! "$target_repo" =~ ^[a-z0-9-]+$ ]]; then
@@ -30,7 +30,8 @@ jobs:
           IFS=',' read -ra allowed_repos <<< "$ALLOWED_REPOS"
           repo_allowed=false
           for repo in "${allowed_repos[@]}"; do
-            # Trim whitespace from repo name using parameter expansion
+            # Trim leading and trailing whitespace using parameter expansion
+            # ${var%%[![:space:]]*} finds leading spaces, ${var##*[![:space:]]} finds trailing spaces
             repo="${repo#"${repo%%[![:space:]]*}"}"
             repo="${repo%"${repo##*[![:space:]]}"}"
             if [[ "$repo" == "$target_repo" ]]; then
@@ -46,7 +47,7 @@ jobs:
           fi
           
           # Parse all remaining parameters as comma-separated key-value pairs
-          params=$(echo "${{ github.event.comment.body }}" | cut -d " " -f 2-)
+          params=$(printf '%s\n' "${{ github.event.comment.body }}" | cut -d " " -f 2-)
           
           # Build the client_payload JSON from comma-separated key-value pairs
           payload_json='{'
