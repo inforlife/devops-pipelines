@@ -21,6 +21,8 @@ jobs:
           IFS=',' read -ra allowed_repos <<< "$ALLOWED_REPOS"
           repo_allowed=false
           for repo in "${allowed_repos[@]}"; do
+            # Trim whitespace from repo name
+            repo=$(echo "$repo" | xargs)
             if [[ "$repo" == "$target_repo" ]]; then
               repo_allowed=true
               break
@@ -29,7 +31,7 @@ jobs:
           
           if [[ "$repo_allowed" == "false" ]]; then
             echo "Error: Target repository '$target_repo' is not in the allowed list."
-            echo "Allowed repositories: ${allowed_repos[@]}"
+            echo "Allowed repositories: ${allowed_repos[*]}"
             exit 1
           fi
           
