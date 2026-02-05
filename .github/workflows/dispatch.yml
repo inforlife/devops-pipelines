@@ -17,12 +17,20 @@ jobs:
           target_repo=$(echo "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
           event_type=$(echo "${{ github.event.comment.body }}" | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
           
+          # Validate target_repo format (only alphanumeric and hyphens)
+          if [[ ! "$target_repo" =~ ^[a-z0-9-]+$ ]]; then
+            echo "Error: Target repository name '$target_repo' contains invalid characters."
+            echo "Only lowercase letters, numbers, and hyphens are allowed."
+            exit 1
+          fi
+          
           # Validate target repository against whitelist
           IFS=',' read -ra allowed_repos <<< "$ALLOWED_REPOS"
           repo_allowed=false
           for repo in "${allowed_repos[@]}"; do
-            # Trim whitespace from repo name
-            repo=$(echo "$repo" | xargs)
+            # Trim whitespace from repo name using parameter expansion
+            repo="${repo#"${repo%%[![:space:]]*}"}"
+            repo="${repo%"${repo##*[![:space:]]}"}"
             if [[ "$repo" == "$target_repo" ]]; then
               repo_allowed=true
               break
