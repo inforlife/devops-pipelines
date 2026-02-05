@@ -4,6 +4,8 @@ on:
   issue_comment:
     types: [created]
 
+# Comma-separated list of repositories allowed to receive dispatch events
+# Format: "repo1,repo2,repo3" (lowercase, alphanumeric and hyphens only)
 env:
   ALLOWED_REPOS: "new-app,test-repo,demo-project"
 
@@ -39,7 +41,7 @@ jobs:
           
           if [[ "$repo_allowed" == "false" ]]; then
             echo "Error: Target repository '$target_repo' is not in the allowed list."
-            echo "Allowed repositories: ${allowed_repos[*]}"
+            echo "Allowed repositories: $ALLOWED_REPOS"
             exit 1
           fi
           
