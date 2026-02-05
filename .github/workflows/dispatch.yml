@@ -21,8 +21,8 @@ jobs:
           
           # Validate target_repo format (only alphanumeric and hyphens)
           if [[ ! "$target_repo" =~ ^[a-z0-9-]+$ ]]; then
-            echo "Error: Target repository name '$target_repo' contains invalid characters."
-            echo "Only lowercase letters, numbers, and hyphens are allowed."
+            printf '%s\n' "Error: Target repository name '$target_repo' contains invalid characters."
+            printf '%s\n' "Only lowercase letters, numbers, and hyphens are allowed."
             exit 1
           fi
           
@@ -31,9 +31,8 @@ jobs:
           repo_allowed=false
           for repo in "${allowed_repos[@]}"; do
             # Trim leading and trailing whitespace using parameter expansion
-            # ${var%%[![:space:]]*} finds leading spaces, ${var##*[![:space:]]} finds trailing spaces
-            repo="${repo#"${repo%%[![:space:]]*}"}"
-            repo="${repo%"${repo##*[![:space:]]}"}"
+            repo="${repo#"${repo%%[![:space:]]*}"}"  # Remove leading whitespace
+            repo="${repo%"${repo##*[![:space:]]}"}"  # Remove trailing whitespace
             if [[ "$repo" == "$target_repo" ]]; then
               repo_allowed=true
               break
@@ -41,8 +40,8 @@ jobs:
           done
           
           if [[ "$repo_allowed" == "false" ]]; then
-            echo "Error: Target repository '$target_repo' is not in the allowed list."
-            echo "Allowed repositories: $ALLOWED_REPOS"
+            printf '%s\n' "Error: Target repository '$target_repo' is not in the allowed list."
+            printf '%s\n' "Allowed repositories: $ALLOWED_REPOS"
             exit 1
           fi
           
