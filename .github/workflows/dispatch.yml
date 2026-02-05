@@ -58,6 +58,3 @@ jobs:
             --input - <<< "$request_body"
         env:
           GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-
-
-
