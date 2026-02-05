@@ -18,29 +18,36 @@ jobs:
           params=$(echo ${{ github.event.comment.body }} | cut -d " " -f 2-)
           
           # Build the client_payload JSON from comma-separated key-value pairs
-          payload_json='{'
           IFS=',' read -ra PARAM_PAIRS <<< "$params"
-          first=true
-          for pair in "${PARAM_PAIRS[@]}"; do
-            # Trim leading and trailing whitespace without changing internal spaces or quotes
-            pair="${pair#"${pair%%[![:space:]]*}"}"; pair="${pair%"${pair##*[![:space:]]}"}"
-            # Split on first space to get key and value
-            key=$(echo "$pair" | cut -d " " -f 1)
-            value=$(echo "$pair" | cut -d " " -f 2-)
-            
-            if [ ! -z "$key" ] && [ ! -z "$value" ]; then
-              if [ "$first" = false ]; then
-                payload_json+=','
+          payload_pairs=$(
+            for pair in "${PARAM_PAIRS[@]}"; do
+              # Trim whitespace
+              pair=$(echo "$pair" | xargs)
+              # Split on first space to get key and value
+              key=$(echo "$pair" | cut -d " " -f 1)
+              value=$(echo "$pair" | cut -d " " -f 2-)
+              
+              if [ ! -z "$key" ] && [ ! -z "$value" ]; then
+                echo "  $key: $value"
+                # Emit "key value" on a single line; jq will handle JSON escaping
+                printf '%s %s\n' "$key" "$value"
               fi
-              payload_json+="\"$key\":\"$value\""
-              first=false
-              echo "  $key: $value"
-            fi
-          done
-          payload_json+='}'
+            done
+          )
           
-          # Create a complete request body with event_type and client_payload
-          request_body="{\"event_type\":\"$event_type\",\"client_payload\":$payload_json}"
+          # Use jq to safely construct the client_payload JSON object
+          payload_json=$(printf '%s\n' "$payload_pairs" | jq -Rn '
+            reduce inputs as $line ({}; 
+              ($line | split(" "; 2)) as $kv
+              | . + { ($kv[0]): $kv[1] }
+            )
+          ')
+          
+          # Create a complete request body with event_type and client_payload using jq
+          request_body=$(jq -n \
+            --arg event_type "$event_type" \
+            --argjson client_payload "$payload_json" \
+            '{event_type: $event_type, client_payload: $client_payload}')
           echo "Request body: $request_body"
           
           gh api \
