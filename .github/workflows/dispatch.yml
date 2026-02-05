@@ -22,8 +22,8 @@ jobs:
           IFS=',' read -ra PARAM_PAIRS <<< "$params"
           first=true
           for pair in "${PARAM_PAIRS[@]}"; do
-            # Trim whitespace
-            pair=$(echo "$pair" | xargs)
+            # Trim leading and trailing whitespace without changing internal spaces or quotes
+            pair="${pair#"${pair%%[![:space:]]*}"}"; pair="${pair%"${pair##*[![:space:]]}"}"
             # Split on first space to get key and value
             key=$(echo "$pair" | cut -d " " -f 1)
             value=$(echo "$pair" | cut -d " " -f 2-)
