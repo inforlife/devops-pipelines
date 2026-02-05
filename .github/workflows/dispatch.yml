@@ -11,11 +11,11 @@ jobs:
       - name: Dispatch event
         run: |
           # Set the required variables
-          target_repo=$(echo ${{ github.event.issue.title }} | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-          event_type=$(echo ${{ github.event.comment.body }} | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
+          target_repo=$(echo "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+          event_type=$(echo "${{ github.event.comment.body }}" | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
           
           # Parse all remaining parameters as comma-separated key-value pairs
-          params=$(echo ${{ github.event.comment.body }} | cut -d " " -f 2-)
+          params=$(echo "${{ github.event.comment.body }}" | cut -d " " -f 2-)
           
           # Build the client_payload JSON from comma-separated key-value pairs
           IFS=',' read -ra PARAM_PAIRS <<< "$params"
