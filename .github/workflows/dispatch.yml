@@ -11,11 +11,37 @@ jobs:
       - name: Dispatch event
         run: |
           # Set the required variables
-          target_repo=$(echo "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-          event_type=$(echo "${{ github.event.comment.body }}" | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
+          target_repo=$(printf '%s\n' "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+          event_type=$(printf '%s\n' "${{ github.event.comment.body }}" | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
+          
+          # Validate target_repo format (only alphanumeric and hyphens)
+          if [[ ! "$target_repo" =~ ^[a-z0-9-]+$ ]]; then
+            printf '%s\n' "Error: Target repository name '$target_repo' contains invalid characters."
+            printf '%s\n' "Only lowercase letters, numbers, and hyphens are allowed."
+            exit 1
+          fi
+          
+          # Validate target repository against whitelist
+          IFS=',' read -ra allowed_repos <<< "$ALLOWED_REPOS"
+          repo_allowed=false
+          for repo in "${allowed_repos[@]}"; do
+            # Trim leading and trailing whitespace using parameter expansion
+            repo="${repo#"${repo%%[![:space:]]*}"}"  # Remove leading whitespace
+            repo="${repo%"${repo##*[![:space:]]}"}"  # Remove trailing whitespace
+            if [[ "$repo" == "$target_repo" ]]; then
+              repo_allowed=true
+              break
+            fi
+          done
+          
+          if [[ "$repo_allowed" == "false" ]]; then
+            printf '%s\n' "Error: Target repository '$target_repo' is not in the allowed list."
+            printf '%s\n' "Allowed repositories: $ALLOWED_REPOS"
+            exit 1
+          fi
           
           # Parse all remaining parameters as comma-separated key-value pairs
-          params=$(echo "${{ github.event.comment.body }}" | cut -d " " -f 2-)
+          params=$(printf '%s\n' "${{ github.event.comment.body }}" | cut -d " " -f 2-)
           
           # Build the client_payload JSON from comma-separated key-value pairs
           IFS=',' read -ra PARAM_PAIRS <<< "$params"
