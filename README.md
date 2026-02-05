@@ -21,4 +21,4 @@ on:
 ### Payload
 The payload must be provided as comma-separated key-value pairs.
 
-For instance, the comment `touch release ABC, environment production` the `release` and `environment` variables which can be accessed in the target workflow via the `${{ github.event.client_payload.NAME }}` syntax.
+For instance, the comment `touch release ABC, environment production` defines the `release` and `environment` variables which can be accessed in the target workflow via the `${{ github.event.client_payload.NAME }}` syntax.
