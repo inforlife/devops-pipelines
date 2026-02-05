@@ -4,6 +4,9 @@ on:
   issue_comment:
     types: [created]
 
+env:
+  ALLOWED_REPOS: "new-app,test-repo,demo-project"
+
 jobs:
   dispatch-event:
     runs-on: ubuntu-latest
@@ -15,7 +18,7 @@ jobs:
           event_type=$(echo "${{ github.event.comment.body }}" | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
           
           # Validate target repository against whitelist
-          allowed_repos=("new-app" "test-repo" "demo-project")
+          IFS=',' read -ra allowed_repos <<< "${{ env.ALLOWED_REPOS }}"
           if [[ ! " ${allowed_repos[@]} " =~ " ${target_repo} " ]]; then
             echo "Error: Target repository '$target_repo' is not in the allowed list."
             echo "Allowed repositories: ${allowed_repos[@]}"
