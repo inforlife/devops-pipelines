@@ -18,8 +18,16 @@ jobs:
           event_type=$(echo "${{ github.event.comment.body }}" | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
           
           # Validate target repository against whitelist
-          IFS=',' read -ra allowed_repos <<< "${{ env.ALLOWED_REPOS }}"
-          if [[ ! " ${allowed_repos[@]} " =~ " ${target_repo} " ]]; then
+          IFS=',' read -ra allowed_repos <<< "$ALLOWED_REPOS"
+          repo_allowed=false
+          for repo in "${allowed_repos[@]}"; do
+            if [[ "$repo" == "$target_repo" ]]; then
+              repo_allowed=true
+              break
+            fi
+          done
+          
+          if [[ "$repo_allowed" == "false" ]]; then
             echo "Error: Target repository '$target_repo' is not in the allowed list."
             echo "Allowed repositories: ${allowed_repos[@]}"
             exit 1
