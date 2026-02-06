@@ -11,15 +11,50 @@ jobs:
       - name: Dispatch event
         run: |
           # Set the required variables
-          target_repo=$(echo ${{ github.event.issue.title }} | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-          event_type=$(echo ${{ github.event.comment.body }} | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
-          read -a payload_param <<< $(echo ${{ github.event.comment.body }} | cut -d " " -f 2-)
-
+          target_repo=$(printf '%s\n' "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+          event_type=$(printf '%s\n' "${{ github.event.comment.body }}" | cut -d " " -f 1 | tr '[:upper:]' '[:lower:]')
+          
+          # Parse all remaining parameters as comma-separated key-value pairs
+          params=$(printf '%s\n' "${{ github.event.comment.body }}" | cut -d " " -f 2-)
+          
+          # Build the client_payload JSON from comma-separated key-value pairs
+          IFS=',' read -ra PARAM_PAIRS <<< "$params"
+          payload_pairs=$(
+            for pair in "${PARAM_PAIRS[@]}"; do
+              # Trim whitespace
+              pair=$(echo "$pair" | xargs)
+              # Split on first space to get key and value
+              key=$(echo "$pair" | cut -d " " -f 1)
+              value=$(echo "$pair" | cut -d " " -f 2-)
+              
+              if [ ! -z "$key" ] && [ ! -z "$value" ]; then
+                echo "  $key: $value"
+                # Emit "key value" on a single line; jq will handle JSON escaping
+                printf '%s %s\n' "$key" "$value"
+              fi
+            done
+          )
+          
+          # Use jq to safely construct the client_payload JSON object
+          payload_json=$(printf '%s\n' "$payload_pairs" | jq -Rn '
+            reduce inputs as $line ({}; 
+              ($line | split(" "; 2)) as $kv
+              | . + { ($kv[0]): $kv[1] }
+            )
+          ')
+          
+          # Create a complete request body with event_type and client_payload using jq
+          request_body=$(jq -n \
+            --arg event_type "$event_type" \
+            --argjson client_payload "$payload_json" \
+            '{event_type: $event_type, client_payload: $client_payload}')
+          echo "Request body: $request_body"
+          
           gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/${{ github.repository_owner }}/$target_repo/dispatches \
-            -f "event_type=$event_type" -F "client_payload[${payload_param[0]}]=${payload_param[1]}"
+            --input - <<< "$request_body"
         env:
           GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
