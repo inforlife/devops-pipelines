@@ -21,26 +21,26 @@ jobs:
           IFS=',' read -ra PARAM_PAIRS <<< "$params"
           payload_pairs=$(
             for pair in "${PARAM_PAIRS[@]}"; do
-              # Trim whitespace
+              # Trim leading/trailing whitespace
               pair=$(echo "$pair" | xargs)
               # Split on first space to get key and value
               key=$(echo "$pair" | cut -d " " -f 1)
               value=$(echo "$pair" | cut -d " " -f 2-)
-              
-              if [ ! -z "$key" ] && [ ! -z "$value" ]; then
-                echo "  $key: $value"
-                # Emit "key value" on a single line; jq will handle JSON escaping
-                printf '%s %s\n' "$key" "$value"
+              # Emit tab-separated key<TAB>value; skip if key or value is empty
+              if [ -n "$key" ] && [ -n "$value" ] && [ "$key" != "$value" ]; then
+                printf '%s\t%s\n' "$key" "$value"
               fi
             done
           )
           
           # Use jq to safely construct the client_payload JSON object
           payload_json=$(printf '%s\n' "$payload_pairs" | jq -Rn '
-            reduce inputs as $line ({}; 
-              ($line | split(" "; 2)) as $kv
-              | . + { ($kv[0]): $kv[1] }
-            )
+            [ inputs
+              | select(length > 0)              # skip empty lines
+              | split("\t")                     # split on tab separator
+              | select(length == 2 and .[0] != "" and .[1] != "")  # skip malformed
+              | {key: .[0], value: .[1]}
+            ] | from_entries
           ')
           
           # Create a complete request body with event_type and client_payload using jq
